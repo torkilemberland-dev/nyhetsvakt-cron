@@ -2,8 +2,8 @@ name: Regnskap og Konkurs-Sjekk
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *'  # Kjører hver hele time
+  workflow_dispatch:     # Tillater manuell start
 
 jobs:
   sjekk-regnskap:
@@ -25,6 +25,16 @@ jobs:
 
     - name: Kjører regnskapssjekk
       env:
-        # Kobler til brreg-hemmeligheten
         SLACK_BRREG: ${{ secrets.SLACK_BRREG }}
       run: python regnskap_varsel.py
+
+    - name: Lagrer oppdatert tilstand (State) tilbake til GitHub
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        # Sjekk om state-filen er opprettet eller endret før vi committer
+        if [ -f brreg_state.json ]; then
+          git add brreg_state.json
+          git commit -m "Oppdaterer Brreg-state med varslede bedrifter [skip ci]" || echo "Ingen nye endringer å lagre"
+          git push origin main
+        fi
